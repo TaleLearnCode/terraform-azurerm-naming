@@ -3,8 +3,8 @@ locals {
 
   standard_name = lower(
     var.resource_type == "storage_account" ?
-    "${local.resource_abbr}${var.name_prefix}${var.srv_comp_abbr}${var.name_suffix}${var.environment}${module.azure_regions.region.region_short}" :
-    "${local.resource_abbr}-${var.name_prefix}${var.srv_comp_abbr}${var.name_suffix}-${var.environment}-${module.azure_regions.region.region_short}"
+    "${local.resource_abbr}${var.name_prefix}${var.srv_comp_abbr}${var.name_suffix}${var.environment}${module.regions.region.region_short}" :
+    "${local.resource_abbr}-${var.name_prefix}${var.srv_comp_abbr}${var.name_suffix}-${var.environment}-${module.regions.region.region_short}"
   )
 
   resource_name = coalesce(var.custom_name, local.standard_name)
