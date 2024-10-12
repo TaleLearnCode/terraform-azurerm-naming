@@ -14,7 +14,7 @@ variable "location" {
 
 variable "environment" {
   type        = string
-  description = "The environment within the resources are being deployed to. Valid values are 'dev', 'qa', 'e2e', and 'prod'."
+  description = "The environment within the resources are being deployed to."
 }
 
 variable "name_prefix" {

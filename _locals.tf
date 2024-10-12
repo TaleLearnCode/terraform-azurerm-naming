@@ -5,6 +5,7 @@
 locals {
   resource_abbr_map = {
     "app_configuration"       = "appcs"
+    "application_insights"    = "appi"
     "cosmosdb_account_nosql"  = "cosno",
     "key_vault"               = "kv"
     "log_analytics_workspace" = "log"
@@ -15,6 +16,7 @@ locals {
   }
   resouce_type_regex = {
     "app_configuration"       = "^[a-zA-Z0-9_-]{5,50}$"
+    "application_insights"    = "^[^%&\\/]{1,260}$"
     "cosmosdb_account_nosql"  = "^(?!.*--)(?!.*..)(?!.*.$)(?!.*-$)([a-z0-9]{3,44})$"
     "key_vault"               = "^([a-zA-Z][a-zA-Z0-9-]{1,22}[a-zA-Z0-9])$" # Should be include (?!.*-{2}.*), but Terraform does not support lookaheads
     "log_analytics_workspace" = "^[a-zA-Z0-9-]{4,63}$"

@@ -34,7 +34,7 @@ You are specifying three values:
 
 - **location**: The Azure Region in which all resources will be created.
 
-- **environment**: The environment within the resources are being deployed to. Valid values are 'dev', 'qa', 'e2e', and 'prod'.
+- **environment**: The environment within the resources are being deployed to.
 
 
 >  Setting any of the following values will have no effect when the custom_name is set to anything but null: srv_comp_abbr, name_prefix, name_suffix, environment.
