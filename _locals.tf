@@ -5,6 +5,7 @@
 locals {
   resource_abbr_map = {
     "app_configuration"       = "appcs"
+    "app_service_plan"        = "asp"
     "application_insights"    = "appi"
     "cosmosdb_account_nosql"  = "cosno",
     "function_app"            = "func"
@@ -17,6 +18,7 @@ locals {
   }
   resouce_type_regex = {
     "app_configuration"       = "^[a-zA-Z0-9_-]{5,50}$"
+    "app_service_plan"        = "^[a-zA-Z0-9-]{1,40}$"
     "application_insights"    = "^[^%&\\/]{1,260}$"
     "cosmosdb_account_nosql"  = "^(?!.*--)(?!.*..)(?!.*.$)(?!.*-$)([a-z0-9]{3,44})$"
     "function_app"            = "^[a-zA-Z0-9][a-zA-Z0-9-]{0,58}[a-zA-Z0-9]$"
