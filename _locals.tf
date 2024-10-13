@@ -7,6 +7,7 @@ locals {
     "app_configuration"       = "appcs"
     "application_insights"    = "appi"
     "cosmosdb_account_nosql"  = "cosno",
+    "function_app"            = "func"
     "key_vault"               = "kv"
     "log_analytics_workspace" = "log"
     "resource_group"          = "rg"
@@ -18,6 +19,7 @@ locals {
     "app_configuration"       = "^[a-zA-Z0-9_-]{5,50}$"
     "application_insights"    = "^[^%&\\/]{1,260}$"
     "cosmosdb_account_nosql"  = "^(?!.*--)(?!.*..)(?!.*.$)(?!.*-$)([a-z0-9]{3,44})$"
+    "function_app"            = "^[a-zA-Z0-9][a-zA-Z0-9-]{0,58}[a-zA-Z0-9]$"
     "key_vault"               = "^([a-zA-Z][a-zA-Z0-9-]{1,22}[a-zA-Z0-9])$" # Should be include (?!.*-{2}.*), but Terraform does not support lookaheads
     "log_analytics_workspace" = "^[a-zA-Z0-9-]{4,63}$"
     "resource_group"          = "^(?!.*[\\.])[a-zA-Z0-9_\\.()-]{1,90}$"
