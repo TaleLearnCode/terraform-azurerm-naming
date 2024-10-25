@@ -4,19 +4,22 @@
 
 locals {
   resource_abbr_map = {
+    "api_management"          = "apim"
     "app_configuration"       = "appcs"
     "app_service_plan"        = "asp"
     "application_insights"    = "appi"
-    "cosmosdb_account_nosql"  = "cosno",
+    "cosmosdb_account_nosql"  = "cosno"
     "function_app"            = "func"
     "key_vault"               = "kv"
     "log_analytics_workspace" = "log"
+    "network_security_group"  = "nsg"
     "resource_group"          = "rg"
     "servicebus_namespace"    = "sbns"
     "static_web_app"          = "stapp"
     "storage_account"         = "st"
   }
   resouce_type_regex = {
+    "api_management"          = "^(?:[a-zA-Z]|[a-zA-Z][a-zA-Z0-9-]{0,48}[a-zA-Z0-9])$"
     "app_configuration"       = "^[a-zA-Z0-9_-]{5,50}$"
     "app_service_plan"        = "^[a-zA-Z0-9-]{1,40}$"
     "application_insights"    = "^[^%&\\/]{1,260}$"
@@ -24,6 +27,7 @@ locals {
     "function_app"            = "^[a-zA-Z0-9][a-zA-Z0-9-]{0,58}[a-zA-Z0-9]$"
     "key_vault"               = "^([a-zA-Z][a-zA-Z0-9-]{1,22}[a-zA-Z0-9])$" # Should be include (?!.*-{2}.*), but Terraform does not support lookaheads
     "log_analytics_workspace" = "^[a-zA-Z0-9-]{4,63}$"
+    "network_security_group"  = "^(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9_.-]{0,78}[a-zA-Z0-9_])$"
     "resource_group"          = "^(?!.*[\\.])[a-zA-Z0-9_\\.()-]{1,90}$"
     "servicebus_namespace"    = "^[a-zA-Z][a-zA-Z0-9-]{4,48}[a-zA-Z0-9]$"
     "static_web_app"          = "^[a-zA-Z0-9][a-zA-Z0-9-]{0,58}[a-zA-Z0-9]$"
