@@ -12,6 +12,7 @@ locals {
     "function_app"            = "func"
     "key_vault"               = "kv"
     "log_analytics_workspace" = "log"
+    "public_ip_address"       = "pip"
     "network_security_group"  = "nsg"
     "resource_group"          = "rg"
     "servicebus_namespace"    = "sbns"
@@ -28,6 +29,7 @@ locals {
     "key_vault"               = "^([a-zA-Z][a-zA-Z0-9-]{1,22}[a-zA-Z0-9])$" # Should be include (?!.*-{2}.*), but Terraform does not support lookaheads
     "log_analytics_workspace" = "^[a-zA-Z0-9-]{4,63}$"
     "network_security_group"  = "^(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9_.-]{0,78}[a-zA-Z0-9_])$"
+    "public_ip_address"       = "^(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9_.-]{0,78}[a-zA-Z0-9_])$"
     "resource_group"          = "^(?!.*[\\.])[a-zA-Z0-9_\\.()-]{1,90}$"
     "servicebus_namespace"    = "^[a-zA-Z][a-zA-Z0-9-]{4,48}[a-zA-Z0-9]$"
     "static_web_app"          = "^[a-zA-Z0-9][a-zA-Z0-9-]{0,58}[a-zA-Z0-9]$"
