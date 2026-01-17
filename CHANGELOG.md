@@ -1,3 +1,16 @@
+## [v0.0.8-pre] - 2026-01-17
+
+### Added
+- Feature additions
+
+### Fixed
+### Changed
+- Updates and improvements
+
+### Contributors
+- @
+
+
 # Changelog
 
 All notable changes to this Terraform module will be documented in this file.
