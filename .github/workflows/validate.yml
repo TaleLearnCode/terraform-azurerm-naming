@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  security-events: write
 
 jobs:
   validate:
@@ -21,17 +22,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: Setup Terraform (v1.9+)
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.8
+          terraform_version: 1.9
 
       - name: Format Check
         run: terraform fmt -check -recursive
         continue-on-error: false
 
       - name: Initialize Terraform
-        run: terraform init
+        run: terraform init -backend=false -input=false
 
       - name: Validate Terraform
         run: terraform validate
@@ -44,29 +45,28 @@ jobs:
 
       - name: Run TFLint
         run: |
-          tflint --format compact
+          tflint --format compact || true
           tflint --format sarif --output tflint.sarif || true
         continue-on-error: true
 
       - name: Upload TFLint SARIF
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('tflint.sarif') != ''
         with:
           sarif_file: tflint.sarif
           category: tflint
           wait-for-processing: false
 
-      - name: Setup TFSec
-        uses: aquasecurity/setup-tfsec@v1
-
       - name: Run TFSec
-        run: |
-          tfsec . --format sarif --out tfsec.sarif || true
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          sarif_file: tfsec.sarif
+          working_directory: .
         continue-on-error: true
 
       - name: Upload TFSec SARIF
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('tfsec.sarif') != ''
         with:
           sarif_file: tfsec.sarif
           category: tfsec
