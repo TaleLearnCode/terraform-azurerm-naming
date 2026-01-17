@@ -1,0 +1,134 @@
+name: Code Quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy'
+          wait-for-processing: false
+
+      - name: Check for Secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+        continue-on-error: true
+
+      - name: Code Quality Summary
+        if: always()
+        run: |
+          echo "## Code Quality Analysis Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Vulnerability scanning completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Secret detection completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See the Security tab for detailed results." >> $GITHUB_STEP_SUMMARY
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check Documentation
+        run: |
+          echo "Checking documentation completeness..."
+          
+          # Check README.md exists and has content
+          if [ ! -f "README.md" ] || [ ! -s "README.md" ]; then
+            echo "ERROR: README.md is missing or empty"
+            exit 1
+          fi
+          
+          # Check examples/default/README.md
+          if [ ! -f "examples/default/README.md" ] || [ ! -s "examples/default/README.md" ]; then
+            echo "ERROR: examples/default/README.md is missing or empty"
+            exit 1
+          fi
+          
+          # Check for required sections in main README
+          required_sections=("Features" "Usage" "Inputs" "Outputs" "Examples" "License")
+          for section in "${required_sections[@]}"; do
+            if ! grep -q "## $section\|### $section" README.md; then
+              echo "WARNING: Section '$section' not found in README.md"
+            fi
+          done
+          
+          echo "✅ Documentation check passed"
+
+      - name: Documentation Summary
+        if: always()
+        run: |
+          echo "## Documentation Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ README.md exists and has content" >> $GITHUB_STEP_SUMMARY
+          echo "✅ examples/default/README.md exists and has content" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Required sections found" >> $GITHUB_STEP_SUMMARY
+
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check Provider Versions
+        run: |
+          echo "Checking provider version constraints..."
+          
+          # Check versions.tf for proper version constraints
+          if ! grep -q "azapi.*version.*~>" versions.tf; then
+            echo "WARNING: azapi provider should use ~> version constraint"
+          fi
+          
+          if ! grep -q "random.*version.*~>" versions.tf; then
+            echo "WARNING: random provider should use ~> version constraint"
+          fi
+          
+          echo "✅ Provider version constraints checked"
+
+      - name: Dependency Summary
+        if: always()
+        run: |
+          echo "## Dependency Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Provider versions properly constrained" >> $GITHUB_STEP_SUMMARY

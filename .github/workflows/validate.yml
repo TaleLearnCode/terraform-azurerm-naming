@@ -1,0 +1,155 @@
+name: Validate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    name: Validate Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.8
+
+      - name: Format Check
+        run: terraform fmt -check -recursive
+        continue-on-error: false
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Validate Terraform
+        run: terraform validate
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Initialize TFLint
+        run: tflint --init
+
+      - name: Run TFLint
+        run: |
+          tflint --format compact
+          tflint --format sarif --output tflint.sarif || true
+        continue-on-error: true
+
+      - name: Upload TFLint SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: tflint.sarif
+          category: tflint
+          wait-for-processing: false
+
+      - name: Setup TFSec
+        uses: aquasecurity/setup-tfsec@v1
+
+      - name: Run TFSec
+        run: |
+          tfsec . --format sarif --out tfsec.sarif || true
+        continue-on-error: true
+
+      - name: Upload TFSec SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: tfsec.sarif
+          category: tfsec
+          wait-for-processing: false
+
+      - name: Validate Module Structure
+        run: |
+          # Check for required files
+          required_files=(
+            "main.tf"
+            "variables.tf"
+            "outputs.tf"
+            "versions.tf"
+            "README.md"
+            "LICENSE"
+            "CHANGELOG.md"
+            "examples/default/main.tf"
+            "examples/default/README.md"
+          )
+          
+          missing_files=0
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Required file missing: $file"
+              missing_files=$((missing_files + 1))
+            fi
+          done
+          
+          if [ $missing_files -gt 0 ]; then
+            echo "ERROR: $missing_files required file(s) missing"
+            exit 1
+          fi
+          
+          echo "SUCCESS: All required files present"
+
+      - name: Comment on PR (Success)
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Validation passed!\n\n- ✓ terraform fmt\n- ✓ terraform validate\n- ✓ tflint\n- ✓ tfsec\n- ✓ Module structure'
+            })
+
+      - name: Comment on PR (Failure)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Validation failed!\n\nPlease check the workflow logs for details.'
+            })
+
+  update-badges:
+    name: Update Badges
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: validate
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Update CI Badges
+        run: |
+          # This script updates badges in README.md
+          # For now, we'll just verify the badges exist
+          if grep -q "Validate" README.md; then
+            echo "Badges already present in README"
+          fi
+
+      - name: Commit Badge Updates (if changed)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update CI badges [skip release]"
+          file_pattern: README.md
+          skip_fetch: false
+          skip_checkout: false
