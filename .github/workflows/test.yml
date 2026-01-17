@@ -1,0 +1,140 @@
+name: Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-test:
+    name: Terraform Test (v${{ matrix.terraform }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        terraform: ['1.6', '1.7', '1.8']
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform v${{ matrix.terraform }}
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ matrix.terraform }}
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Run Terraform Tests
+        run: terraform test -verbose
+        continue-on-error: false
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-test-results-${{ matrix.terraform }}
+          path: terraform-test-*.log
+          retention-days: 30
+
+  examples-validation:
+    name: Examples Validation (v${{ matrix.terraform }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        terraform: ['1.6', '1.8']
+        example: ['default']
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform v${{ matrix.terraform }}
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ matrix.terraform }}
+
+      - name: Initialize Example - ${{ matrix.example }}
+        run: |
+          cd examples/${{ matrix.example }}
+          terraform init
+
+      - name: Validate Example - ${{ matrix.example }}
+        run: |
+          cd examples/${{ matrix.example }}
+          terraform validate
+
+      - name: Plan Example - ${{ matrix.example }}
+        run: |
+          cd examples/${{ matrix.example }}
+          terraform plan -out=tfplan
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        continue-on-error: true
+
+      - name: Upload Example Plan
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: example-plan-${{ matrix.example }}-${{ matrix.terraform }}
+          path: examples/${{ matrix.example }}/tfplan
+          retention-days: 7
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [terraform-test, examples-validation]
+    
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Test Summary
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All test matrices completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Terraform Test Versions" >> $GITHUB_STEP_SUMMARY
+          echo "- v1.6" >> $GITHUB_STEP_SUMMARY
+          echo "- v1.7" >> $GITHUB_STEP_SUMMARY
+          echo "- v1.8" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Examples Tested" >> $GITHUB_STEP_SUMMARY
+          echo "- default (v1.6, v1.8)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR (Success)
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ All tests passed!\n\n**Terraform Versions Tested:**\n- ✓ v1.6\n- ✓ v1.7\n- ✓ v1.8\n\n**Examples Validated:**\n- ✓ default'
+            })
+
+      - name: Comment on PR (Failure)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Tests failed!\n\nPlease check the workflow logs for details.'
+            })

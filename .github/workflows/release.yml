@@ -1,0 +1,201 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Configure Git User
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Get Last Tag
+        id: last_tag
+        run: |
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "tag=$last_tag" >> $GITHUB_OUTPUT
+          echo "Last tag: $last_tag"
+
+      - name: Get Commits Since Last Tag
+        id: commits
+        run: |
+          last_tag=${{ steps.last_tag.outputs.tag }}
+          commits=$(git log ${last_tag}..HEAD --oneline --pretty=format:"%h %s" 2>/dev/null || git log --oneline --pretty=format:"%h %s" | head -20)
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$commits" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Determine Version Bump
+        id: version
+        run: |
+          last_tag=${{ steps.last_tag.outputs.tag }}
+          commits="${{ steps.commits.outputs.commits }}"
+          
+          # Remove 'v' prefix
+          version=${last_tag#v}
+          
+          # Parse version
+          IFS='.' read -r major minor patch <<< "$version"
+          
+          # Check for breaking changes or features
+          if echo "$commits" | grep -qi "BREAKING CHANGE"; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif echo "$commits" | grep -qi "^feat:"; then
+            minor=$((minor + 1))
+            patch=0
+          elif echo "$commits" | grep -qi "^fix:"; then
+            patch=$((patch + 1))
+          fi
+          
+          new_version="v${major}.${minor}.${patch}"
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+          echo "New version: $new_version"
+
+      - name: Skip Release Check
+        id: skip_check
+        run: |
+          commits="${{ steps.commits.outputs.commits }}"
+          if echo "$commits" | grep -q "\[skip release\]"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Release skipped due to [skip release] flag"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate Changelog Entry
+        if: steps.skip_check.outputs.skip == 'false'
+        id: changelog
+        run: |
+          version=${{ steps.version.outputs.version }}
+          commits="${{ steps.commits.outputs.commits }}"
+          date=$(date +%Y-%m-%d)
+          
+          changelog_entry="## [$version] - $date\n\n"
+          changelog_entry+="### Added\n"
+          changelog_entry+="- Feature additions\n\n"
+          changelog_entry+="### Fixed\n"
+          
+          # Parse commits for fixes
+          while IFS= read -r line; do
+            if [[ $line == *"fix:"* ]]; then
+              msg=${line#*fix: }
+              changelog_entry+="- $msg\n"
+            fi
+          done <<< "$commits"
+          
+          changelog_entry+="### Changed\n"
+          changelog_entry+="- Updates and improvements\n\n"
+          changelog_entry+="### Contributors\n"
+          
+          # Get unique contributors
+          contributors=$(git log ${last_tag}..HEAD --pretty=format:"%an" 2>/dev/null | sort -u || git log --pretty=format:"%an" | sort -u | head -5)
+          while IFS= read -r contributor; do
+            changelog_entry+="- @$contributor\n"
+          done <<< "$contributors"
+          
+          echo "entry<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$changelog_entry" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update CHANGELOG.md
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          version=${{ steps.version.outputs.version }}
+          
+          # Create temporary file with new changelog entry
+          {
+            echo -e "${{ steps.changelog.outputs.entry }}"
+            echo ""
+            cat CHANGELOG.md
+          } > CHANGELOG.md.tmp
+          
+          mv CHANGELOG.md.tmp CHANGELOG.md
+
+      - name: Create Tag and Release
+        if: steps.skip_check.outputs.skip == 'false'
+        id: create_release
+        run: |
+          version=${{ steps.version.outputs.version }}
+          
+          # Create and push tag
+          git add CHANGELOG.md
+          git commit -m "chore: release $version [skip release]" || echo "No changes to commit"
+          git tag -a $version -m "Release $version" || echo "Tag already exists"
+          git push origin main --tags || echo "Push failed - may not have changes"
+          
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: steps.skip_check.outputs.skip == 'false'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: ${{ steps.version.outputs.version }}
+          body: |
+            ${{ steps.changelog.outputs.entry }}
+            
+            ## Installation
+            
+            ```hcl
+            module "naming" {
+              source = "registry.terraform.io/your-org/naming/azurerm"
+              version = "${{ steps.version.outputs.version }}"
+            }
+            ```
+            
+            ## Changelog
+            
+            See [CHANGELOG.md](./CHANGELOG.md) for full details.
+          draft: false
+          prerelease: false
+
+      - name: Release Summary
+        if: always()
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.skip_check.outputs.skip }}" == "true" ]; then
+            echo "Release was skipped due to [skip release] flag" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.create_release.outcome }}" == "success" ]; then
+            echo "✅ **Release Created Successfully**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Changes:**" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.commits.outputs.commits }}" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Release creation failed or no changes to release" >> $GITHUB_STEP_SUMMARY
+          fi

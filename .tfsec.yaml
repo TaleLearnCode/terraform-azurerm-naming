@@ -1,0 +1,28 @@
+# TFSec Configuration
+# Security scanning for Terraform configurations
+
+# Terraform checks
+checks:
+  - AVD-AZU-0001  # Enable encryption where applicable
+  - AVD-AZU-0002  # Enable logging where applicable
+
+# Minimum severity level to report
+minimum_severity: WARNING
+
+# Severity levels to fail on
+severity: ERROR
+
+# Don't check for specific rules if needed (can be expanded)
+skip:
+  # - AVD-AZU-0001
+
+# Format for output
+format: sarif
+
+# Only show new issues (useful in CI/CD)
+only_new_issues: false
+
+# Exclude patterns (if needed)
+exclude_paths:
+  - "**/.terraform/**"
+  - "**/terraform.tfstate*"
