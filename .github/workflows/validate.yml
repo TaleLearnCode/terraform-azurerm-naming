@@ -56,12 +56,11 @@ jobs:
           category: tflint
           wait-for-processing: false
 
-      - name: Setup TFSec
-        uses: aquasecurity/setup-tfsec@v1
-
       - name: Run TFSec
-        run: |
-          tfsec . --format sarif --out tfsec.sarif || true
+        uses: aquasecurity/tfsec-action@v1
+        with:
+          sarif_file: tfsec.sarif
+          working_directory: .
         continue-on-error: true
 
       - name: Upload TFSec SARIF
