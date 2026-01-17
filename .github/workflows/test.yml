@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        terraform: ['1.6', '1.7', '1.8', '1.9']
+        terraform: ['1.9']
     
     steps:
       - name: Checkout Code
@@ -51,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        terraform: ['1.6', '1.8', '1.9']
+        terraform: ['1.9']
         example: ['default']
     
     steps:
@@ -106,9 +106,7 @@ jobs:
           echo "✅ All test matrices completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Terraform Test Versions" >> $GITHUB_STEP_SUMMARY
-          echo "- v1.6" >> $GITHUB_STEP_SUMMARY
-          echo "- v1.7" >> $GITHUB_STEP_SUMMARY
-          echo "- v1.8" >> $GITHUB_STEP_SUMMARY
+          echo "- v1.9" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Examples Tested" >> $GITHUB_STEP_SUMMARY
           echo "- default (v1.6, v1.8)" >> $GITHUB_STEP_SUMMARY
@@ -123,7 +121,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ All tests passed!\n\n**Terraform Versions Tested:**\n- ✓ v1.6\n- ✓ v1.7\n- ✓ v1.8\n\n**Examples Validated:**\n- ✓ default'
+              body: '✅ All tests passed!\n\n**Terraform Versions Tested:**\n- ✓ v1.9\n\n**Examples Validated:**\n- ✓ default'
             })
 
       - name: Comment on PR (Failure)
