@@ -3,6 +3,8 @@
 [![Terraform](https://img.shields.io/badge/Terraform-~%3E%201.6-blue.svg)](https://www.terraform.io/downloads.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+> ⚠️ **Development Status**: This module is still in active development and may be subject to breaking changes. Please use with caution in production environments and review the [CHANGELOG.md](CHANGELOG.md) before upgrading versions.
+
 This Terraform module generates standardized, compliant names for Azure resources following Microsoft Azure naming conventions and constraints. It simplifies resource naming by automatically generating names based on workload, environment, region, and uniqueness requirements.
 
 ## Features
