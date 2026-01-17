@@ -76,9 +76,9 @@ jobs:
       - name: Plan Example - ${{ matrix.example }}
         run: |
           cd examples/${{ matrix.example }}
-          terraform plan -out=tfplan
+          terraform plan -out=tfplan -var="subscription_id=${{ secrets.TEST_SUBSCRIPTION_ID }}"
         env:
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.TEST_SUBSCRIPTION_ID }}
         continue-on-error: true
 
       - name: Upload Example Plan
