@@ -57,7 +57,7 @@ jobs:
           wait-for-processing: false
 
       - name: Run TFSec
-        uses: aquasecurity/tfsec-action@v1
+        uses: aquasecurity/tfsec-action@v1.0.6
         with:
           sarif_file: tfsec.sarif
           working_directory: .
