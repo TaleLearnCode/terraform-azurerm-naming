@@ -271,7 +271,7 @@ Check test.yml logs for:
 
 ### Release Issues
 Check release.yml logs for:
-- Commit format: Use [conventional commits](#releaseyml)
+- Commit format: Use [Conventional Commits](https://www.conventionalcommits.org/)
 - Git configuration: Verify user.email and user.name are set
 - Tag conflicts: Remove conflicting tags with `git tag -d {tag} && git push origin :refs/tags/{tag}`
 
