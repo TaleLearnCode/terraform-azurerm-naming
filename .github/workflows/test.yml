@@ -39,7 +39,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: terraform-test-results-${{ matrix.terraform }}
           path: terraform-test-*.log
@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload Example Plan
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: example-plan-${{ matrix.example }}-${{ matrix.terraform }}
           path: examples/${{ matrix.example }}/tfplan
