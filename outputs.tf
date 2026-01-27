@@ -366,6 +366,21 @@ output "image_template" {
   }
 }
 
+output "resource_group" {
+  description = "Resource Group"
+  value = {
+    name          = local.name_generator.resource_group.name
+    unique_name   = local.name_generator.resource_group.unique_name
+    allows_dashes = local.name_generator.resource_group.allows_dashes
+    slug          = local.name_generator.resource_group.abbreviation
+    min_length    = local.name_generator.resource_group.min_length
+    max_length    = local.name_generator.resource_group.max_length
+    scope         = local.name_generator.resource_group.scope
+    regex         = local.name_generator.resource_group.regex
+  }
+}
+
+
 output "static_web_app" {
   description = "Naming convention for Static Web App"
   value = {
